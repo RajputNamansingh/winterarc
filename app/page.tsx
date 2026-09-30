@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function Home() { return <main className="shell"><p className="eyebrow">THE FINAL 90 DAYS</p><h1>WINTER<br /><span>ARC</span></h1><p className="lead">Don&apos;t wait for January. Build your momentum before the year ends.</p><div className="actions"><Link className="button primary" href="/register">Start your Winter Arc</Link><Link className="button" href="/login">Sign in</Link></div><p className="muted">October 1 → December 31 · Discipline, tracked.</p></main> }

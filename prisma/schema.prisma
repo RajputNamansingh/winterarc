@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ArcStatus { PLANNED ACTIVE COMPLETED }
+enum HabitCategory { PHYSICAL MENTAL SPIRITUAL CAREER FINANCE PRODUCTIVITY LIFESTYLE CUSTOM }
+enum GoalStatus { NOT_STARTED IN_PROGRESS COMPLETED PAUSED }
+enum Priority { LOW MEDIUM HIGH }
+
+enum AchievementKey { FIRST_STEP SEVEN_DAY_FIRE THIRTY_DAYS FIFTY_WORKOUTS BOOKWORM DEEP_WORKER ARC_COMPLETE }
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  timezone     String   @default("UTC")
+  avatar       String?
+  bio          String?
+  role         String   @default("USER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  arcs         WinterArc[]
+  habits       Habit[]
+  goals        Goal[]
+  completions  HabitCompletion[]
+  workouts     Workout[]
+  reading      ReadingBook[]
+  journals     JournalEntry[]
+  meditation   Meditation[]
+  deepWork     DeepWorkSession[]
+  nutrition    NutritionEntry[]
+  xp           XPTransaction[]
+  achievements UserAchievement[]
+}
+
+model WinterArc {
+  id        String    @id @default(cuid())
+  userId    String
+  year      Int
+  startDate DateTime
+  endDate   DateTime
+  status    ArcStatus @default(PLANNED)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habits    Habit[]
+  goals     Goal[]
+  @@unique([userId, year])
+  @@index([userId, status])
+}
+
+model Habit {
+  id            String          @id @default(cuid())
+  userId        String
+  arcId         String?
+  name          String
+  description   String?
+  category      HabitCategory   @default(CUSTOM)
+  frequency     String          @default("DAILY")
+  target        Float           @default(1)
+  unit          String          @default("times")
+  reminderTime  String?
+  startDate     DateTime
+  endDate       DateTime?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  arc           WinterArc?      @relation(fields: [arcId], references: [id], onDelete: SetNull)
+  completions   HabitCompletion[]
+  @@index([userId, isActive])
+}
+
+model HabitCompletion {
+  id        String   @id @default(cuid())
+  habitId   String
+  userId    String
+  date      DateTime
+  value     Float    @default(1)
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now())
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([habitId, date])
+  @@index([userId, date])
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  userId      String
+  arcId       String?
+  title       String
+  description String?
+  category    String     @default("PERSONAL")
+  target      Float
+  current     Float      @default(0)
+  unit        String     @default("units")
+  deadline    DateTime?
+  priority    Priority   @default(MEDIUM)
+  status      GoalStatus @default(NOT_STARTED)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  arc         WinterArc? @relation(fields: [arcId], references: [id], onDelete: SetNull)
+  @@index([userId, status])
+}
+
+model Workout { id String @id @default(cuid()); userId String; date DateTime; type String; duration Int; notes String?; createdAt DateTime @default(now()); user User @relation(fields: [userId], references: [id], onDelete: Cascade); exercises Exercise[]; @@index([userId, date]) }
+model Exercise { id String @id @default(cuid()); workoutId String; name String; sets Int?; reps Int?; weight Float?; duration Int?; workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade) }
+model ReadingBook { id String @id @default(cuid()); userId String; bookName String; author String?; totalPages Int; pagesRead Int @default(0); startDate DateTime @default(now()); finishDate DateTime?; rating Int?; notes String?; user User @relation(fields: [userId], references: [id], onDelete: Cascade) }
+model JournalEntry { id String @id @default(cuid()); userId String; date DateTime; title String; content String; mood String?; tags String[]; createdAt DateTime @default(now()); updatedAt DateTime @updatedAt; user User @relation(fields: [userId], references: [id], onDelete: Cascade); @@index([userId, date]) }
+model Meditation { id String @id @default(cuid()); userId String; date DateTime; duration Int; type String; notes String?; user User @relation(fields: [userId], references: [id], onDelete: Cascade) }
+model DeepWorkSession { id String @id @default(cuid()); userId String; date DateTime; duration Int; category String; notes String?; user User @relation(fields: [userId], references: [id], onDelete: Cascade) }
+model NutritionEntry { id String @id @default(cuid()); userId String; date DateTime; calories Int?; protein Float?; water Float?; notes String?; user User @relation(fields: [userId], references: [id], onDelete: Cascade); @@unique([userId, date]) }
+model XPTransaction { id String @id @default(cuid()); userId String; amount Int; source String; referenceId String?; createdAt DateTime @default(now()); user User @relation(fields: [userId], references: [id], onDelete: Cascade) }
+model Achievement { id String @id @default(cuid()); key AchievementKey @unique; name String; description String; icon String; xpReward Int; users UserAchievement[] }
+model UserAchievement { id String @id @default(cuid()); userId String; achievementId String; unlockedAt DateTime @default(now()); user User @relation(fields: [userId], references: [id], onDelete: Cascade); achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade); @@unique([userId, achievementId]) }
